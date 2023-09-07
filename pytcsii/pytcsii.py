@@ -60,7 +60,7 @@ Command list:
 
 
 
-class tcsii():
+class tcsii_serial():
     def __init__(self, port, baseline=30, surfaces=0, max_temp=50, beep=False, trigger_in=True):
         """Connect to TSCII and set baseline and max temperature
 
@@ -427,7 +427,7 @@ class tcsii_protocol_generator():
                                         rise_rate, return_rate,
                                         baseline=30.0, wait=0.000,
                                         trig_out_val=255, trigger_out_dur=0.100,
-                                        duration_mode='fixed_plateau', n_trials=None):
+                                        duration_mode='fixed_stim', n_trials=None):
         """
         Generate trials from a list of trials. If a parameter is a single value, it will be applied to all trials.
         If a parameter is a list, it must have the same length as temp_list.
@@ -448,7 +448,6 @@ class tcsii_protocol_generator():
         if type(trig_out_val) is not list:
             trig_out_val = [trig_out_val] * len(temp_list)
 
-        # TODO adjust durations
         for target, duration, rise, retur_, trig_val, zone in zip(temp_list, duration_smmm, rise_rate, return_rate, trig_out_val, zones):
             self.add_wait_trigger_in()
             self.add_stimulation(baseline=baseline, target_temp=target, rise_rate=rise, return_rate=retur_, 
