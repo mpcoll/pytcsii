@@ -1,7 +1,7 @@
 # pytcsii: A python package to interface with the QST.Lab TCS II thermal stimulator
 
 
-> :warning: This pacakge has not been extensively tested. Use at your own risk. Verify the that the serial commands sent to the device are giving the expected results and double check the generated protocol files before using them on the device. Please report any issues you may encounter.
+> :warning: This package has not been extensively tested. Use at your own risk. Verify that the serial commands sent to the device are giving the expected results and double-check the generated protocol files before using them on the device. Please report any issues you may encounter.
 
 
 ## Installation
@@ -13,7 +13,7 @@ pip install git+https://github.com/mpcoll/pytcsii.git
 
 ### Serial control
 
-When the TSC II stimulator is in computer control mode (connected to a computer, powered on, no image on the device monitor), the tscii_serial class can be used to easily send serial commands to the stimulator.
+When the TSC II stimulator is in computer control mode (connected to a computer, powered on, no image on the device monitor), the *tscii_serial* class can be used to easily send serial commands to the stimulator.
 
 Example usage:
 
