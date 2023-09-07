@@ -1,4 +1,4 @@
-# pytscii: A python package to interface with the QST.Lab TCS II thermal stimulator
+# pytcsii: A python package to interface with the QST.Lab TCS II thermal stimulator
 
 
 > :warning: This pacakge has not been extensively tested. Use at your own risk. Verify the that the serial commands sent to the device are giving the expected results and double check the generated protocol files before using them on the device. Please report any issues you may encounter.
