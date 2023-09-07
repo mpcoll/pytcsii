@@ -12,7 +12,7 @@ setup(
     install_requires=[
                       'numpy',
                       'pyserial',
-                      'matplotlib'
+                      'matplotlib',
                       'schemdraw'
 
                       ],
