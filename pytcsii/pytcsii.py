@@ -2,6 +2,9 @@ import serial
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import schemdraw
+from schemdraw.flow import *
+
 
 """ 
 TCSII serial commands
@@ -292,7 +295,7 @@ class tcsii_serial():
 
 
 class tcsii_protocol_generator():
-    def __init__(self, filename, recordTemperatures=1):
+    def __init__(self, filename, recordTemperatures=1, generate_figure=False):
         """Connect to TSCII and set baseline and max temperature
 
         Args:
@@ -304,6 +307,11 @@ class tcsii_protocol_generator():
         self.n_steps = 0
         self.recordTemperatures=recordTemperatures
         self.protocol = ['[protocol]', 'stepsNumber=0', 'recordTemperatures=' + str(recordTemperatures), '']
+        self.generate_figure = generate_figure
+        if self.generate_figure:
+            self.schema = schemdraw.Drawing()
+            self.schema += Start().label(filename + '.protocol.ini')
+            self.schema += Arrow().down(self.schema.unit/4)
 
 
     def add_stimulation(self, target_temp, rise_rate, return_rate, 
@@ -321,11 +329,15 @@ class tcsii_protocol_generator():
         return_time = (target_temp - baseline) / return_rate
         if duration_mode == 'fixed_plateau':
             duration_smmm = duration_smmm + rise_time  # Add rise time so that selected duration applies only to plateau
-        if duration_mode == 'fixed_total':
+            total_duration = duration_smmm + return_time
+        elif duration_mode == 'fixed_total':
             duration_smmm = duration_smmm - return_time # Remove return time so total includes return time
-        if duration_mode == 'stim_only':
+            total_duration = duration_smmm 
+        elif duration_mode == 'fixed_stim':
             duration_smmm = duration_smmm # By default, duration is rise + plateau
-
+            total_duration = duration_smmm + return_time
+        else:
+            raise ValueError('duration_mode must be one of: fixed_plateau, fixed_total, fixed_stim')
 
         # Format number to strings with 3 decimals
         duration_smmm = f'{duration_smmm:.3f}'
@@ -365,6 +377,9 @@ class tcsii_protocol_generator():
             self.protocol.append('sec1=1.000')
             self.protocol.append('deg1=30.000')
             self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Box(w = 4).label("step" + str(curr_step) + "\nStimulation" + "\n" + "Target: " + target_temp + "\n" + "Total duration: " + str(total_duration))
+            self.schema += Arrow().down(schemdraw.Drawing().unit/4)
 
 
     def add_wait_trigger_in(self):
@@ -378,8 +393,85 @@ class tcsii_protocol_generator():
         self.protocol.append('typeWaitText=WAIT_TRIGGER')
         self.protocol.append('number=1')
         self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Box(w = 4).label("step" + str(curr_step) + "\n" + "Wait for trigger")
+            self.schema += Arrow().down(self.schema.unit/4)
 
 
+    def add_wait_duration(self, duration_s=1.00):
+        """Add a wait duration step to the protocol."""
+        duration_s = f'{duration_s:.3f}'
+        self.n_steps += 1
+        curr_step = self.n_steps
+        self.protocol.append('[step' + str(curr_step) + ']')
+        self.protocol.append('stepType=2')
+        self.protocol.append('stepTypeText=WAIT')
+        self.protocol.append('typeWait=0')
+        self.protocol.append('typeWaitText=WAIT_DURATION')
+        self.protocol.append('duration=' + str(duration_s))
+        self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Data(w = 4).label("step" + str(curr_step) + "\n" + "Wait for duration" + "\n Duration" + str(duration_s) + "s")
+            self.schema += Arrow().down(self.schema.unit/4)
+
+
+    def add_wait_random_duration(self, min_duration_s=1.00, max_duration_s=3.00,
+                                 step_duration_s=1.00):
+        """Add random wait duration step to the protocol."""
+        min_duration_s = f'{min_duration_s:.3f}'
+        max_duration_s = f'{max_duration_s:.3f}'
+        step_duration_s = f'{step_duration_s:.3f}'
+        
+        self.n_steps += 1
+        curr_step = self.n_steps
+        self.protocol.append('[step' + str(curr_step) + ']')
+        self.protocol.append('stepType=2')
+        self.protocol.append('stepTypeText=WAIT')
+        self.protocol.append('typeWait=1')
+        self.protocol.append('typeWaitText=WAIT_RANDOM_DURATION')
+        self.protocol.append('minDuration=' + str(min_duration_s))
+        self.protocol.append('maxDuration=' + str(max_duration_s))
+        self.protocol.append('stepDuration=' + str(step_duration_s))
+        self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Data(w = 4).label("step" + str(curr_step) + "\n" + "Wait for random duration" + "\n Min duration" + str(min_duration_s) + "s" + "\n Max duration" + str(max_duration_s) + "s" + "\n Step duration" + str(step_duration_s) + "s")
+            self.schema += Arrow().down(self.schema.unit/4)
+
+    def add_wait_response(self, time_out_s=20.00):
+        """Add a wait response step to the protocol."""
+        time_out_s = f'{time_out_s:.3f}'
+        self.n_steps += 1
+        curr_step = self.n_steps
+        self.protocol.append('[step' + str(curr_step) + ']')
+        self.protocol.append('stepType=2')
+        self.protocol.append('stepTypeText=WAIT')
+        self.protocol.append('typeWait=2')
+        self.protocol.append('typeWaitText=WAIT_RESPONSE')
+        self.protocol.append('timeOutResponse=' + str(time_out_s))
+        self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Data(w = 4).label("step" + str(curr_step) + "\n" + "Wait for reponse button" + "\n Timeout" + str(time_out_s) + "s")
+            self.schema += Arrow().down(self.schema.unit/4)
+            
+    def add_trigger_out(self, trigger_val=255, trigger_dur_s=0.1,
+                        trigger_offset_s=0.0):
+        """Add a trigger out step to the protocol."""
+        trigger_dur_s = f'{trigger_dur_s:.3f}'
+        trigger_offset_s = f'{trigger_offset_s:.3f}'
+        trigger_val = str(trigger_val)
+        self.n_steps += 1
+        curr_step = self.n_steps
+        self.protocol.append('[step' + str(curr_step) + ']')
+        self.protocol.append('stepType=3')
+        self.protocol.append('stepTypeText=TRIGGER_OUT')
+        self.protocol.append('triggerVal=' + trigger_val)
+        self.protocol.append('triggerDur=' + trigger_dur_s)
+        self.protocol.append('triggerOffset=' + trigger_offset_s)
+        self.protocol.append('')
+        if self.generate_figure:
+            self.schema += Data(w = 4).label("step" + str(curr_step) + "\n" + "Send trigger out" + "\n Value" + str(trigger_val) + "\n Duration" + str(trigger_dur_s) + "s" + "\n Offset" + str(trigger_offset_s) + "s")
+            self.schema += Arrow().down(self.schema.unit/4)
+            
     def set_baseline(self, baseline_temp=30.0, adjust_to_skin=0):
         """Add a set baseline step to the protocol."""
         baseline_temp = f'{baseline_temp:.3f}'
@@ -391,7 +483,10 @@ class tcsii_protocol_generator():
         self.protocol.append('baseline=' + baseline_temp)
         self.protocol.append('adjustToSkin=' + str(adjust_to_skin))
         self.protocol.append('')
-
+        if self.generate_figure:
+            self.schema += Box(w = 4).label("step" + str(curr_step) + "\n" + "Set baseline" + "\n Temperature" + str(baseline_temp) + "°C")
+            self.schema += Arrow().down(self.schema.unit/4)
+    
     def set_constant_temp(self, constant_temp, duration_s, speed, zones):
         """Add a set constant temperature step to the protocol."""
         constant_temp = f'{constant_temp:.3f}'
@@ -411,7 +506,9 @@ class tcsii_protocol_generator():
                 self.protocol.append('enableConsTemp' + str(z) + '=0')
             self.protocol.append('ConstTempHold' + str(z) + '=' + duration_s)
         self.protocol.append('')
-
+        if self.generate_figure:
+            self.schema += Box(w = 4).label("step" + str(curr_step) + "\n" + "Set constant temperature" + "\n Temperature" + str(constant_temp) + "°C" + "\n Duration" + str(duration_s) + "s" + "\n Speed" + str(speed) + "°C/s")
+            self.schema += Arrow().down(self.schema.unit/4)
 
     def export_protocol(self):
         """Export protocol to file."""
@@ -421,17 +518,23 @@ class tcsii_protocol_generator():
                 f.write(line + '\n')
         f.close()
 
+        if self.generate_figure:
+            self.schema += Ellipse(w = 4).label("End")
+            self.schema.save(self.filename + ".protocol.jpg")
 
     def generate_from_lists(self, temp_list, 
                                         duration_smmm, zones, 
                                         rise_rate, return_rate,
                                         baseline=30.0, wait=0.000,
                                         trig_out_val=255, trigger_out_dur=0.100,
-                                        duration_mode='fixed_stim', n_trials=None):
+                                        duration_mode='fixed_stim', n_trials=None,
+                                        wait_type='trigger_in', wait_args=None):
         """
         Generate trials from a list of trials. If a parameter is a single value, it will be applied to all trials.
         If a parameter is a list, it must have the same length as temp_list.
         If temp_list is a single value, the n_trials parameter must be specified as an integer.
+        wait_type: can be used to choose the type of wait between trials.
+        If wait_type is not 'trigger_in' all the wait arguments must be specified in a dict passed to wait_args.
         """        
         
         if type(temp_list) is not list:
@@ -448,9 +551,30 @@ class tcsii_protocol_generator():
         if type(trig_out_val) is not list:
             trig_out_val = [trig_out_val] * len(temp_list)
 
+        self.set_baseline(baseline_temp=baseline)
         for target, duration, rise, retur_, trig_val, zone in zip(temp_list, duration_smmm, rise_rate, return_rate, trig_out_val, zones):
-            self.add_wait_trigger_in()
+            if wait_type == 'trigger_in':
+                self.add_wait_trigger_in()
+            elif wait_type == 'duration':
+                self.add_wait_duration(duration_s=wait_args['duration_s'])
+            elif wait_type == 'random_duration':
+                self.add_wait_random_duration(min_duration_s=wait_args['min_duration_s'],
+                                              max_duration_s=wait_args['max_duration_s'],
+                                              step_duration_s=wait_args['step_duration_s'])
+            elif wait_type == 'response':
+                self.add_wait_response(time_out_s=wait_args['time_out_s'])
+            else:
+                raise ValueError('Invalid wait_type')
+            
             self.add_stimulation(baseline=baseline, target_temp=target, rise_rate=rise, return_rate=retur_, 
                                  duration_smmm=duration, wait=wait,
                                  zones=zone, trig_out_val=trig_val, trig_out_dur=trigger_out_dur, duration_mode=duration_mode)
 
+test = tcsii_protocol_generator('test', generate_figure=True)
+
+test.generate_from_lists(temp_list=[40, 40, 40],
+                         duration_smmm=[60, 60, 60],
+                         zones=[1, 2, 3, 4, 5],
+                         rise_rate=10, return_rate=10)
+
+test.export_protocol()
