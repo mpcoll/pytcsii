@@ -1,7 +1,7 @@
 # pytcsii: A python package to interface with the QST.Lab TCS II thermal stimulator
 
 <p style="text-align:center;">
-<img src="https://static.wixstatic.com/media/cdfa5d_c7427cb0e2d649c79ebf5fcbcb69d052~mv2_d_2998_2248_s_2.png/v1/fill/w_2998,h_2245,al_c,q_95,enc_auto/cdfa5d_c7427cb0e2d649c79ebf5fcbcb69d052~mv2_d_2998_2248_s_2.png" width="400" class="center">/>
+<img src="https://static.wixstatic.com/media/cdfa5d_c7427cb0e2d649c79ebf5fcbcb69d052~mv2_d_2998_2248_s_2.png/v1/fill/w_2998,h_2245,al_c,q_95,enc_auto/cdfa5d_c7427cb0e2d649c79ebf5fcbcb69d052~mv2_d_2998_2248_s_2.png" width="400" class="center">
 </p>
 
 
