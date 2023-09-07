@@ -35,7 +35,7 @@ tcsii.trigger()
 
 ### Protocol generator
 
-This function can be used to generate protocol files that can then be transferred to the devise using a USB dongle and used in the "Custom protocols" screen.
+The *tcsii_protocol_generator* class be used to generate protocol files that can then be transferred to the devise using a USB dongle and used in the "Custom protocols" screen.
 
 Example usage for a simple protocol:
 ```python
