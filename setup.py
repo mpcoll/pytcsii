@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='pyexample',
+    name='pytcsii',
     version='0.1.0',    
     description='A Python package for the QST TCS II stimulator',
     url='https://github.com/mpcoll/pytcsii',
@@ -13,6 +13,7 @@ setup(
                       'numpy',
                       'pyserial',
                       'matplotlib'
+                      'schemdraw'
 
                       ],
 
