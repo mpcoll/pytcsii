@@ -20,7 +20,7 @@ Example usage:
 ```python
 from pytscii import tscii_serial
 
-port_address = 'COM3' # Adress of the TSC II virtual serial port
+port_address = 'COM3' # Address of the TSC II virtual serial port
  
 tcsii = tscii_serial(port_address) # Initialize
 tcsii.set_baseline(30) # Set baseline to 30
