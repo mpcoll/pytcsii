@@ -1,6 +1,9 @@
 # pytscii: A python package to interface with the QST.Lab TCS II thermal stimulator
 
 
+> :warning: This pacakge has not been extensively tested. Use at your own risk. Verify the that the serial commands sent to the device are giving the expected results and double check the generated protocol files before using them on the device. Please report any issues you may encounter.
+
+
 ## Installation
 
 pip install git+https://github.com/mpcoll/pytcsii.git
@@ -39,7 +42,8 @@ Example usage for a simple protocol:
 from pytscii import tcsii_protocol_generator
 
 # Initialize and choose filename for output
-protocol = tcsii_protocol_generator(filename='path/simple_protocol')
+protocol = tcsii_protocol_generator(filename='path/simple_protocol',
+                                    generate_figure=True)
 
 # Set baseline
 protocol.set_baseline(baseline_temp=30.0)
@@ -56,18 +60,21 @@ protocol.add_stimulation(target_temp=45.0, rise_rate=20.0, return_rate=20.0,
 protocol.export()
 ```
 
+For longer protocols, the *generate_from_lists* function can be used to generate a list of stimulation trials interleaved with a a wait option. If a fixed value is passed instead of a list, all trialls will have the same value for this parameter. 
+
 Example usage for a longer protocol:
 ```python
 from pytscii import tcsii_protocol_generator
 
 # Initialize and choose filename for output
-protocol = tcsii_protocol_generator(filename='path/long_protocol')
+protocol = tcsii_protocol_generator(filename='path/long_protocol',
+                                    generate_figure=True)
 
+# Generate a list of 5 trials with a wait for trigger in between each trial
 temp_trials = [45, 40, 42, 44, 42]
-dur_trials = [2.0, 1.0, 3.0, 4.0]
 
-# The generate_from_lists function can be used to generate a list of trials intersped by a a wait option.
-
-
-
+protocol.generate_from_lists(temp_list=temp_trials,
+                             duration_smmm=2.000,
+                             wait_type='trigger_in')
+protocol.export()
 ```
