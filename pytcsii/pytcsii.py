@@ -570,11 +570,3 @@ class tcsii_protocol_generator():
                                  duration_smmm=duration, wait=wait,
                                  zones=zone, trig_out_val=trig_val, trig_out_dur=trigger_out_dur, duration_mode=duration_mode)
 
-test = tcsii_protocol_generator('test', generate_figure=True)
-
-test.generate_from_lists(temp_list=[40, 40, 40],
-                         duration_smmm=[60, 60, 60],
-                         zones=[1, 2, 3, 4, 5],
-                         rise_rate=10, return_rate=10)
-
-test.export_protocol()
