@@ -99,7 +99,7 @@ class tcsii_serial():
         Returns:
             str: temperature in 1/10 degrees as a str
         """
-        temp = str(temp*10).zfill(zero_fill_len)
+        temp = str(int(temp*10)).zfill(zero_fill_len)
         return temp
 
     def format_ms(self, ms, zero_fill_len=5):
@@ -111,7 +111,7 @@ class tcsii_serial():
         Returns:
             str: ms formatted with leading zeros
         """
-        ms = str(ms).zfill(zero_fill_len)
+        ms = str(int(ms)).zfill(zero_fill_len)
         return ms
     
 
@@ -178,7 +178,7 @@ class tcsii_serial():
 
 
         if dur_mode == 'fixed_plateau':
-            dur_ms = dur_ms + self.stim_rise_dur_ms # Add rise time so that selected duration applies only to plateau
+            self.stim_duration_ms = dur_ms + self.stim_rise_dur_ms # Add rise time so that selected duration applies only to plateau
         if dur_mode == 'fixed_total':
            self.stim_duration_ms = dur_ms - self.stim_return_dur_ms # Remove return time so total includes return time
         if dur_mode == 'fixed_stim':
@@ -229,7 +229,7 @@ class tcsii_serial():
 
         # Read and print temperature at 100 Hz
         now = time.time()
-        while elapsed < (self.stim_total_duration_ms/1000 + offset_s):
+        while elapsed < (self.stim_duration_ms/1000 + offset_s):
             self.port.write('E'.encode())
             out = self.port.readline().decode()
             all_outs.append(out)
@@ -252,7 +252,7 @@ class tcsii_serial():
 
         # Read and print temperature at 100 Hz
         now = time.time()
-        while elapsed < (self.stim_total_duration_ms/1000 + offset_s):
+        while elapsed < (self.stim_duration_ms/1000 + offset_s):
             self.port.write('E'.encode())
             out = self.port.readline().decode()
             all_outs.append(out)
