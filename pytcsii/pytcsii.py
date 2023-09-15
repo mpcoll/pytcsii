@@ -134,6 +134,7 @@ class tcsii_serial():
         # Set baseline temperature
         if baseline > 45 or baseline < 30: # Check if baseline is in range
             Warning('Baseline temperature is out of 30-45 range')
+        self_baseline = baseline
         self.port.write(('N' + self.format_temp(baseline)).encode()) # Set baseline on all surfaces
 
     def print_temp(self):
