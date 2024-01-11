@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import schemdraw
 from schemdraw.flow import *
-
+import pandas as pd
 
 """ 
 TCSII serial commands
@@ -35,7 +35,8 @@ Command list:
 'Ovsxxxxx': set stimulation speed in 1/100 degrees per seconds ('s'='0'(all areas) or '1' to '5', 'xxxxx'='00001' to '99999')
 'Orsxxxxx': set return speed in 1/100 degrees per seconds ('s'='0'(all areas) or '1' to '5', 'xxxxx'='00001' to '99999')
 'Otsxxxx' : set stimulation temperature in 1/100 degrees ('s'='0'(all areas) or '1' to '5', 'xxxx'='0001' to '6000')
-'Oe'.     : display currEnt temperatures for neutral and area 1 to 5 in 1/100 degrees
+'Oe'.     : display currEnt temperatur 
+es for neutral and area 1 to 5 in 1/100 degrees
 'Osx'.   : enable (x='e') or disable (x='d') the launch of a stimulation using the trigger in
 'Oo'.     : Output trigger
 'B'.     : display Battery voltage and % of charge
@@ -62,9 +63,9 @@ Command list:
 """
 
 
-
 class tcsii_serial():
-    def __init__(self, port, baseline=30, surfaces=0, max_temp=50, beep=False, trigger_in=True):
+    def __init__(self, port, baseline=30, surfaces=0, max_temp=50, beep=False, trigger_in=True,
+                 temp_profile=False):
         """Connect to TSCII and set baseline and max temperature
 
         Args:
@@ -85,10 +86,13 @@ class tcsii_serial():
         self.stim_set = False # Indicate that no stimulation parameters have been set.
         self.beep = beep # Beep on stim start
         self.trigger_in = trigger_in # Lauch on trigger in
+        self.temp_profile = temp_profile
         if self.trigger_in:
             self.port.write('Ose'.encode()) # Enable trigger in
         else:
             self.port.write('Osd'.encode()) # Disable trigger in
+        if self.temp_profile:
+            self.port.write('Ue11111'.encode())
 
     def format_temp(self, temp, zero_fill_len=3):
         """Format temperature in 1/10 degrees
@@ -99,7 +103,7 @@ class tcsii_serial():
         Returns:
             str: temperature in 1/10 degrees as a str
         """
-        temp = str(int(temp*10)).zfill(zero_fill_len)
+        temp = str(temp*10).zfill(zero_fill_len)
         return temp
 
     def format_ms(self, ms, zero_fill_len=5):
@@ -111,7 +115,7 @@ class tcsii_serial():
         Returns:
             str: ms formatted with leading zeros
         """
-        ms = str(int(ms)).zfill(zero_fill_len)
+        ms = str(ms).zfill(zero_fill_len)
         return ms
     
 
@@ -134,7 +138,7 @@ class tcsii_serial():
         # Set baseline temperature
         if baseline > 45 or baseline < 30: # Check if baseline is in range
             Warning('Baseline temperature is out of 30-45 range')
-        self_baseline = baseline
+        self.baseline=baseline
         self.port.write(('N' + self.format_temp(baseline)).encode()) # Set baseline on all surfaces
 
     def print_temp(self):
@@ -148,7 +152,7 @@ class tcsii_serial():
         """Set the stimulation parameter for the TCSII
 
         Args:
-            target (int): target temperature in C
+            target (int): target temperature in C 
             rise_rate (int): rise rate in C/s
             return_rate (int): return rate in C/s
             dur_ms (int):  duration in ms. Phases duration depends on dur_mode.
@@ -218,19 +222,26 @@ class tcsii_serial():
         self.port.write('L'.encode()) # Trigger stimulation
         # Beep if beep is set
         if self.beep:
-              self.tport.write('Z010100'.encode())
+              self.port.write('Z010100'.encode())
 
-    def trigger_and_save_temp(self, frequency=1000, offset_s=1):
+    def trigger_and_save_temp(self, duration_ms=None, 
+                              frequency=1000, offset_s=1):
         elapsed = 0
         all_outs = []
         if self.beep:
-              self.tport.write('Z010100'.encode())
+              self.port.write('Z010100'.encode())
 
+
+        if duration_ms:
+            dur = duration_ms
+        else:
+            dur = self.stim_duration_ms
         self.port.write('L'.encode()) # Trigger stimulation
 
         # Read and print temperature at 100 Hz
+
         now = time.time()
-        while elapsed < (self.stim_duration_ms/1000 + offset_s):
+        while elapsed < (dur/1000 + offset_s):
             self.port.write('E'.encode())
             out = self.port.readline().decode()
             all_outs.append(out)
@@ -240,20 +251,72 @@ class tcsii_serial():
         all_outs = [i.replace('\r', '').replace('\n', '') for i in all_outs]
         outs = np.asarray([i.split('+') for i in all_outs]).astype(float)/10
 
-        self.read_outs = outs
+        self.read_outs = pd.DataFrame(outs, columns=['neutral', 'z1', 'z2', 'z3', 'z4', 'z5'])
 
 
-    def trigger_and_plot_temp(self, frequency=100, offset_s=1, fig_each_zone=False):
+
+    def trigger_and_save_temp_rd(self, out_file=None, duration_ms=None,
+                                 offset_s=1):
         elapsed = 0
         all_outs = []
         if self.beep:
-              self.tport.write('Z010100'.encode())
+              self.port.write('Z010100'.encode())
+
+
+        if duration_ms:
+            dur = duration_ms
+        else:
+            dur = self.stim_duration_ms
+        self.port.write('L'.encode()) # Trigger stimulation
+
+        # Read and print temperature at 100 Hz
+
+        now = time.time()
+        while elapsed < (dur/1000 + offset_s):
+            self.port.write('E'.encode())
+            out = self.port.readline().decode()
+            all_outs.append(out)
+            elapsed = time.time() - now
+
+        # Format output
+        all_outs = [i.replace('\r', '').replace('\n', '') for i in all_outs]
+        outs = np.asarray([i.split('+') for i in all_outs]).astype(float)/10
+
+        pd.DataFrame(outs, columns=['neutral', 'z1', 'z2', 'z3', 'z4', 'z5']).to_csv(out_file)
+
+
+    def set_rd_plateau(self, temp_plateau, temp_pic,
+                   dur_plateau_1_10ms,
+                   n_seg='006',
+                   dur_plateau_2_10ms='200',
+                   rise_plateau_10ms='075', 
+                   rise_pic='010',
+                   dur_pic = '100',
+                   zones = '11111'
+                   ):
+        string_to_send = 'Uw' + zones + n_seg + rise_plateau_10ms + temp_plateau + \
+                          dur_plateau_1_10ms + temp_plateau + rise_pic + temp_pic + dur_pic + \
+                          temp_pic + rise_pic + temp_plateau + dur_plateau_2_10ms + temp_plateau
+        print(string_to_send)
+        self.port.write(string_to_send.encode())
+
+
+    def trigger_and_plot_temp(self, frequency=100, offset_s=1, fig_each_zone=False,
+                              duration_ms=None):
+        elapsed = 0
+        all_outs = []
+        if self.beep:
+              self.port.write('Z010100'.encode())
 
         self.port.write('L'.encode()) # Trigger stimulation
 
         # Read and print temperature at 100 Hz
         now = time.time()
-        while elapsed < (self.stim_duration_ms/1000 + offset_s):
+        if duration_ms:
+            dur = duration_ms
+        else:
+            dur = self.stim_duration_ms
+        while elapsed < (dur/1000 + offset_s):
             self.port.write('E'.encode())
             out = self.port.readline().decode()
             all_outs.append(out)
@@ -477,6 +540,7 @@ class tcsii_protocol_generator():
         """Add a set baseline step to the protocol."""
         baseline_temp = f'{baseline_temp:.3f}'
         self.n_steps += 1
+        self.baseline = baseline_temp
         curr_step = self.n_steps
         self.protocol.append('[step' + str(curr_step) + ']')
         self.protocol.append('stepType=6')
@@ -500,7 +564,7 @@ class tcsii_protocol_generator():
         self.protocol.append('stepTypeText=SET_CONST_TEMP')
         for z in range(1,6):
             self.protocol.append('constTemp' + str(z) +  '=' + constant_temp)
-            self.protocol.append('constTempSpeed=' + str(z) + speed)
+            self.protocol.append('constTempSpeed' + str(z) + '='+ speed)
             if z in zones:
                 self.protocol.append('enableConsTemp' + str(z) + '=1')
             else:
